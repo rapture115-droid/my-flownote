@@ -118,4 +118,844 @@
           <div id="moreMenuDropdown" class="hidden absolute right-0 mt-2 w-64 bg-white rounded-xl border border-[#E6E4DD] shadow-lg py-1.5 z-50 text-xs">
             <div class="px-3.5 py-2 border-b border-[#F3F2EE]">
               <p class="font-semibold text-[#1C1B18]">워크스페이스 설정</p>
-              <p id="dropdownSyncInfo" class="text-[11px] text-[#6E6D68] mt-0.5">클라우드 키를 연결하면 PC-
+              <p id="dropdownSyncInfo" class="text-[11px] text-[#6E6D68] mt-0.5">클라우드 키를 연결하면 PC-모바일 동기화됩니다.</p>
+            </div>
+
+            <button onclick="openKpiModal()" class="w-full text-left px-3.5 py-2.5 hover:bg-[#FAF9F6] flex items-center justify-between text-[#1C1B18]">
+              <span class="flex items-center gap-2 font-medium">
+                <span>🎯</span>
+                <span>연간 KPI · 월별 마일스톤 관리</span>
+              </span>
+            </button>
+
+            <button onclick="openCloudModal()" class="w-full text-left px-3.5 py-2.5 hover:bg-[#FAF9F6] flex items-center justify-between text-[#1C1B18]">
+              <span class="flex items-center gap-2 font-medium">
+                <span>☁️</span>
+                <span>클라우드 동기화 설정 (Supabase)</span>
+              </span>
+              <span id="cloudMenuStatus" class="text-[10px] px-1.5 py-0.5 rounded bg-stone-100 text-stone-600">미연결</span>
+            </button>
+
+            <button onclick="handleGcalAction()" class="w-full text-left px-3.5 py-2.5 hover:bg-[#FAF9F6] flex items-center justify-between text-[#1C1B18]">
+              <span class="flex items-center gap-2 font-medium">
+                <span>📅</span>
+                <span id="gcalMenuLabel">Google 캘린더 연동하기</span>
+              </span>
+              <span id="gcalMenuBadge" class="text-[10px] px-1.5 py-0.5 rounded bg-stone-100 text-stone-600">OFF</span>
+            </button>
+
+            <div class="my-1 border-t border-[#F3F2EE]"></div>
+
+            <button onclick="exportDataJson()" class="w-full text-left px-3.5 py-2 hover:bg-[#FAF9F6] text-[#6E6D68] flex items-center gap-2">
+              <span>💾</span>
+              <span>전체 기록 파일로 백업 (JSON)</span>
+            </button>
+
+            <button onclick="resetDemoData()" class="w-full text-left px-3.5 py-2 hover:bg-red-50 text-red-600 flex items-center gap-2">
+              <span>↺</span>
+              <span>초기 데모 데이터로 되돌리기</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 동적 카테고리/월별 연동 비전 & KPI 바 ==================== -->
+    <div id="visionBar" class="hidden border-t border-[#E6E4DD] bg-white/95">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-[#F3F2EE]">
+          <div class="flex items-center gap-2 text-xs">
+            <span id="visionModeBadge" class="px-2 py-0.5 rounded-md bg-[#1C1B18] text-white font-semibold text-[11px]">전체 모드</span>
+            <span class="text-[#6E6D68]">기준 월:</span>
+            <select id="kpiMonthSelector" onchange="changeKpiTargetMonth(this.value)" class="bg-[#FAF9F6] border border-[#E6E4DD] rounded-lg px-2 py-1 font-bold text-[#1C1B18] outline-none cursor-pointer">
+            </select>
+          </div>
+          <button onclick="openKpiModal()" class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#F3F2EE] hover:bg-[#E8E6DF] text-[#1C1B18] transition flex items-center gap-1.5">
+            <span>⚙️ 연간 계획 · 월별 KPI 설정</span>
+          </button>
+        </div>
+
+        <div id="visionCardsContainer" class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== 메인 2단 레이아웃 ==================== -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+    <!-- 좌측 컬럼 (5칸): 일정 타임라인 & 할 일 체크리스트 -->
+    <section class="lg:col-span-5 space-y-5">
+      
+      <!-- 1. 일정 타임라인 & 월간 달력 카드 -->
+      <div class="bg-white rounded-2xl border border-[#E6E4DD] p-5 card-shadow">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="text-sm font-bold text-[#1C1B18] tracking-tight">일정 · 스케줄 관리</h2>
+            <p id="todayDateLabel" class="text-[11px] text-[#6E6D68] mt-0.5"></p>
+          </div>
+          <div class="flex items-center bg-[#F3F2EE] p-0.5 rounded-lg text-[11px] font-medium">
+            <button onclick="setScheduleView('day')" id="viewDayBtn" class="px-2.5 py-1 rounded-md bg-white text-[#1C1B18] shadow-xs">일간</button>
+            <button onclick="setScheduleView('week')" id="viewWeekBtn" class="px-2.5 py-1 rounded-md text-[#6E6D68] hover:text-[#1C1B18]">주간</button>
+            <button onclick="setScheduleView('month')" id="viewMonthBtn" class="px-2.5 py-1 rounded-md text-[#6E6D68] hover:text-[#1C1B18]">월간</button>
+          </div>
+        </div>
+
+        <div id="scheduleContainer"></div>
+
+        <form onsubmit="addScheduleItem(event)" class="mt-4 pt-3 border-t border-[#F3F2EE] space-y-2">
+          <div class="flex items-center justify-between text-[11px] text-[#6E6D68] px-0.5">
+            <span>등록 대상 날짜: <b id="targetDateDisplay" class="text-[#1C1B18]">오늘</b></span>
+            <button type="button" onclick="resetSelectedDateToToday()" class="text-[10px] underline hover:text-[#1C1B18]">오늘로 맞추기</button>
+          </div>
+          <div class="flex items-center gap-2">
+            <input id="newSchedTime" type="text" placeholder="14:00" class="w-16 text-xs bg-[#FAF9F6] border border-[#E6E4DD] rounded-lg px-2.5 py-1.5 outline-none focus:border-[#1C1B18]" />
+            <input id="newSchedTitle" type="text" placeholder="선택한 날짜에 일정 추가..." class="flex-1 text-xs bg-[#FAF9F6] border border-[#E6E4DD] rounded-lg px-3 py-1.5 outline-none focus:border-[#1C1B18]" />
+            <button type="submit" class="text-xs font-medium bg-[#1C1B18] text-white px-3 py-1.5 rounded-lg hover:bg-stone-800 transition shrink-0">추가</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- 2. 할 일 (To-Do) 카드 -->
+      <div class="bg-white rounded-2xl border border-[#E6E4DD] p-5 card-shadow">
+        <div class="flex items-center justify-between mb-3.5">
+          <h2 class="text-sm font-bold text-[#1C1B18] tracking-tight">체크리스트 · 할 일</h2>
+          <span id="todoCounter" class="text-[11px] font-medium text-[#6E6D68]">0/0 완료</span>
+        </div>
+
+        <div id="todoList" class="space-y-2"></div>
+
+        <form onsubmit="addTodoItem(event)" class="mt-4 pt-3 border-t border-[#F3F2EE] flex items-center gap-2">
+          <input id="newTodoInput" type="text" placeholder="할 일을 적고 Enter..." class="flex-1 text-xs bg-[#FAF9F6] border border-[#E6E4DD] rounded-lg px-3 py-2 outline-none focus:border-[#1C1B18]" />
+          <button type="submit" class="text-xs font-medium bg-[#F3F2EE] hover:bg-[#E8E6DF] text-[#1C1B18] px-3 py-2 rounded-lg transition">등록</button>
+        </form>
+      </div>
+
+    </section>
+
+    <!-- 우측 컬럼 (7칸): 업무 스토리 스레드 & 가족별 퀵노트 피드 -->
+    <section class="lg:col-span-7 space-y-5">
+
+      <!-- 1. 업무 스토리 스레드 -->
+      <div id="workThreadSection" class="space-y-3">
+        <div class="flex items-center justify-between px-1">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-[#6E6D68]">업무 스토리 스레드 · 진행 트래킹</h3>
+          <span class="text-[11px] text-[#6E6D68]">완료 전까지 매일 자동 유지</span>
+        </div>
+        <div id="workThreadsList" class="space-y-3"></div>
+      </div>
+
+      <!-- 2. 개인 · 가족 퀵노트 피드 -->
+      <div id="familyNotesSection" class="space-y-3">
+        <div class="flex items-center justify-between px-1">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-[#6E6D68]">일상 · 가족 퀵노트 피드</h3>
+          <span id="notesCountLabel" class="text-[11px] text-[#6E6D68]"></span>
+        </div>
+        <div id="notesFeedList" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- ==================== 하단 고정 퀵노트 / 스레드 콤포저 (Dock) ==================== -->
+  <div id="bottomComposerDock" class="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#E6E4DD] shadow-2xl transition-all duration-300">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 py-3">
+      <!-- 상단 컨트롤: 카테고리 태그 & 접기/펼치기 버튼 -->
+      <div class="flex items-center justify-between pb-2 mb-2 border-b border-[#F3F2EE] gap-2">
+        <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5" id="composerTagBar">
+          <!-- JS로 카테고리 태그 렌더링 -->
+        </div>
+        <button onclick="toggleComposerMinimized()" class="text-xs font-semibold text-[#6E6D68] hover:text-[#1C1B18] px-2.5 py-1 rounded-lg hover:bg-[#F3F2EE] transition flex items-center gap-1 shrink-0">
+          <span id="composerToggleLabel">입력창 접기 ▾</span>
+        </button>
+      </div>
+
+      <!-- 입력 본문 영역 -->
+      <div id="composerBodyArea" class="space-y-2">
+        <textarea id="quickNoteInput" rows="2" placeholder="생각나는 일, 업무 진행상황, 가족 메모를 바로 적으세요. (Ctrl+V로 이미지도 바로 붙습니다)" class="w-full text-[13px] bg-transparent outline-none resize-none placeholder:text-[#9C9A92] leading-relaxed"></textarea>
+
+        <!-- 첨부 이미지 미리보기 -->
+        <div id="pastedImagePreviewWrap" class="hidden relative inline-block">
+          <img id="pastedImagePreview" src="" alt="첨부 이미지 미리보기" class="max-h-28 rounded-xl border border-[#E6E4DD] object-cover" />
+          <button onclick="clearPastedImage()" class="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-[#1C1B18] text-white text-[10px] flex items-center justify-center shadow">✕</button>
+        </div>
+
+        <div class="flex items-center justify-between pt-1 border-t border-[#F3F2EE]">
+          <div class="flex items-center gap-2">
+            <label class="cursor-pointer text-xs text-[#6E6D68] hover:text-[#1C1B18] flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-[#F3F2EE] transition">
+              <span>🖼️ 이미지 첨부</span>
+              <input type="file" accept="image/*" onchange="handleFileUpload(event)" class="hidden" />
+            </label>
+            <span class="text-[11px] text-[#9C9A92] hidden sm:inline">또는 화면 캡처 후 Ctrl+V</span>
+          </div>
+
+          <button onclick="submitQuickEntry()" class="text-xs font-semibold bg-[#1C1B18] text-white px-4 py-2 rounded-xl hover:bg-stone-800 transition flex items-center gap-1.5">
+            <span id="submitBtnLabel">기록 남기기</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 연간 KPI & 월별 Performance 관리 모달 ==================== -->
+  <div id="kpiModal" class="hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[88vh] flex flex-col border border-[#E6E4DD] shadow-2xl overflow-hidden">
+      <div class="px-6 py-4 border-b border-[#E6E4DD] flex items-center justify-between bg-[#FAF9F6]">
+        <div>
+          <h3 class="text-base font-bold text-[#1C1B18]">🎯 연간 KPI 및 월별 세부 Performance 설계</h3>
+          <p class="text-xs text-[#6E6D68] mt-0.5">카테고리별로 연간 목표를 등록하면, 각 월에 해당하는 수행 항목만 상단 바에 자동으로 표시됩니다.</p>
+        </div>
+        <button onclick="closeKpiModal()" class="w-8 h-8 rounded-lg hover:bg-[#E8E6DF] text-[#6E6D68] hover:text-[#1C1B18] flex items-center justify-center">✕</button>
+      </div>
+
+      <div class="px-6 pt-3 border-b border-[#F3F2EE] flex items-center gap-2 bg-white">
+        <button onclick="switchKpiModalTab('work')" id="kpiTabWork" class="px-3 py-2 text-xs font-bold border-b-2 border-[#1C1B18] text-[#1C1B18]">🏢 업무 프로젝트 & Performance</button>
+        <button onclick="switchKpiModalTab('personal')" id="kpiTabPersonal" class="px-3 py-2 text-xs font-medium border-b-2 border-transparent text-[#6E6D68] hover:text-[#1C1B18]">🌿 나 · 가족 월별 목표</button>
+      </div>
+
+      <div id="kpiModalBody" class="p-6 overflow-y-auto space-y-5 flex-1 text-xs">
+      </div>
+
+      <div class="px-6 py-3.5 border-t border-[#E6E4DD] bg-[#FAF9F6] flex justify-end">
+        <button onclick="closeKpiModal()" class="text-xs font-semibold bg-[#1C1B18] text-white px-5 py-2 rounded-xl hover:bg-stone-800">완료 및 닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 최초 1회 구글 캘린더 연동 배너 ==================== -->
+  <div id="gcalOnboardingBanner" class="hidden fixed bottom-24 right-5 z-40 max-w-sm bg-[#1C1B18] text-white p-4 rounded-2xl shadow-xl border border-stone-700">
+    <div class="flex items-start gap-3">
+      <div class="text-lg">📅</div>
+      <div class="flex-1 text-xs">
+        <p class="font-semibold text-[13px]">Google 캘린더를 연결할까요?</p>
+        <p class="text-stone-300 mt-1 leading-relaxed">한 번 연결해 두면 이후엔 우측 상단(⋮) 메뉴 속으로 조용히 숨겨집니다.</p>
+        <div class="flex items-center gap-2 mt-3">
+          <button onclick="connectGcalFromBanner()" class="bg-white text-[#1C1B18] font-semibold px-3 py-1.5 rounded-lg hover:bg-stone-100 transition">지금 연동</button>
+          <button onclick="dismissGcalBanner()" class="text-stone-400 hover:text-white px-2.5 py-1.5">나중에</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 클라우드 동기화 설정 모달 ==================== -->
+  <div id="cloudModal" class="hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 border border-[#E6E4DD] shadow-2xl">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-base font-bold text-[#1C1B18]">☁️ PC-모바일 실시간 클라우드 연결</h3>
+        <button onclick="closeCloudModal()" class="text-[#6E6D68] hover:text-[#1C1B18] text-sm">✕</button>
+      </div>
+      <p class="text-xs text-[#6E6D68] leading-relaxed mb-4">
+        Supabase 프로젝트의 <b>Project URL</b>과 <b>anon public 키</b>를 입력하면, PC와 스마트폰이 실시간으로 같은 데이터를 공유합니다.
+      </p>
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-semibold text-[#1C1B18] mb-1">Supabase Project URL</label>
+          <input id="inputSupabaseUrl" type="text" placeholder="https://xxxxxxxxxxxx.supabase.co" class="w-full bg-[#FAF9F6] border border-[#E6E4DD] rounded-xl px-3 py-2 outline-none focus:border-[#1C1B18]" />
+        </div>
+        <div>
+          <label class="block font-semibold text-[#1C1B18] mb-1">Supabase anon public Key</label>
+          <input id="inputSupabaseKey" type="password" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6..." class="w-full bg-[#FAF9F6] border border-[#E6E4DD] rounded-xl px-3 py-2 outline-none focus:border-[#1C1B18]" />
+        </div>
+      </div>
+      <div class="flex items-center justify-end gap-2 mt-5">
+        <button onclick="closeCloudModal()" class="text-xs px-3.5 py-2 rounded-xl text-[#6E6D68] hover:bg-[#F3F2EE]">취소</button>
+        <button onclick="saveCloudCredentials()" class="text-xs font-semibold bg-[#1C1B18] text-white px-4 py-2 rounded-xl hover:bg-stone-800">저장 및 실시간 연결</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 이미지 크게 보기 모달 ==================== -->
+  <div id="imageLightbox" onclick="this.classList.add('hidden')" class="hidden fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 cursor-zoom-out">
+    <img id="lightboxImg" src="" alt="확대 이미지" class="max-w-full max-h-[90vh] rounded-xl shadow-2xl" />
+  </div>
+
+  <!-- ==================== 핵심 자바스크립트 로직 ==================== -->
+  <script>
+    const PRESET_SUPABASE_URL = "YOUR_SUPABASE_URL";
+    const PRESET_SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+
+    function getTodayISO() {
+      const now = new Date();
+      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    }
+
+    const CATEGORIES = [
+      { id: 'all', label: '전체', dot: 'bg-stone-800' },
+      { id: 'work', label: '업무', dot: 'bg-indigo-500' },
+      { id: 'me', label: '나', dot: 'bg-emerald-500' },
+      { id: 'seonwoo', label: '선우', dot: 'bg-sky-500' },
+      { id: 'seoyun', label: '서윤', dot: 'bg-rose-400' },
+      { id: 'husband', label: '남편', dot: 'bg-amber-500' },
+      { id: 'parents', label: '친정', dot: 'bg-purple-400' },
+      { id: 'inlaws', label: '시댁', dot: 'bg-teal-500' },
+    ];
+
+    const todayStr = getTodayISO();
+    const currentMonthNum = new Date().getMonth() + 1;
+
+    const DEFAULT_STATE = {
+      activeCategory: 'all',
+      composerCategory: 'work',
+      composerMinimized: false,
+      scheduleView: 'day',
+      selectedDate: todayStr,
+      calendarYear: new Date().getFullYear(),
+      calendarMonth: new Date().getMonth(),
+      visionExpanded: true,
+      kpiTargetMonth: currentMonthNum,
+      gcalConnected: false,
+      gcalBannerDismissed: false,
+
+      visions: {
+        work: '핵심 파이프라인 설계·개발 마일스톤 적기 완수 및 인허가 문서 무결점 확보',
+        me: '내 몸과 마음의 에너지를 단단하게 지키는 주 3회 운동 & 독서 루틴',
+        family: '아이들과 온전히 눈 맞추는 저녁 시간 & 양가 부모님 안부 챙기기'
+      },
+
+      workKpis: [
+        {
+          id: 'kpi_p1',
+          projectTitle: 'P1. 전립선암 설계 및 개발',
+          targetMonth: 12,
+          performances: [
+            { id: 'perf_1', month: 10, phase: '설계 및 개발 입력', title: '위험관리 문서 작성', done: true },
+            { id: 'perf_2', month: 11, phase: '설계 및 개발 입력', title: '사용적합성 문서 작성', done: false },
+            { id: 'perf_3', month: 11, phase: '설계 및 개발 입력', title: '설계 입력 요구사항 검토 회의', done: false },
+            { id: 'perf_4', month: 12, phase: '설계 및 개발 출력', title: '제품 개발자료 작성 및 검증 완료', done: false }
+          ]
+        }
+      ],
+
+      personalGoals: [
+        { id: 'pg_1', category: 'me', month: currentMonthNum, title: '주 3회 30분 이상 유산소 운동 & 12시 전 취침', done: false },
+        { id: 'pg_2', category: 'me', month: currentMonthNum, title: '월 1권 완독 및 독서 메모 남기기', done: true },
+        { id: 'pg_3', category: 'seonwoo', month: currentMonthNum, title: '선우 한글/수학 놀이북 매일 15분 함께하기', done: false },
+        { id: 'pg_4', category: 'seoyun', month: currentMonthNum, title: '서윤이 영유아 발달 체크 및 예방접종 일정 확인', done: false },
+        { id: 'pg_5', category: 'husband', month: currentMonthNum, title: '월 1회 부부 데이트 및 가계부 결산 대화', done: false },
+        { id: 'pg_6', category: 'parents', month: currentMonthNum, title: '주말 안부 영상통화 및 계절 과일 보내드리기', done: false },
+        { id: 'pg_7', category: 'inlaws', month: currentMonthNum, title: '다음 달 가족 모임 일정 조율 및 안부 연락', done: false }
+      ],
+
+      schedules: [
+        { id: 's1', time: '10:00', title: 'P1 사용적합성 문서 초안 리뷰', category: 'work', isGcal: false, date: todayStr },
+        { id: 's2', time: '16:30', title: '선우 유치원 하원 픽업', category: 'seonwoo', isGcal: false, date: todayStr },
+        { id: 's3', time: '19:30', title: '가족 저녁 식사 및 하루 정리', category: 'me', isGcal: false, date: todayStr }
+      ],
+      todos: [
+        { id: 't1', text: '위험관리 계획서 개정 이력 최종 확인', category: 'work', done: false },
+        { id: 't2', text: '선우 알림장 확인 및 여벌 옷 챙기기', category: 'seonwoo', done: true },
+        { id: 't3', text: '서윤이 상비약 및 보습제 주문하기', category: 'seoyun', done: false }
+      ],
+      workThreads: [
+        {
+          id: 'wt1',
+          title: 'P1. 전립선암 설계 및 개발 — 사용적합성 문서화',
+          status: '진행중',
+          steps: [
+            { id: 'st1', time: '어제 14:20', text: '위험관리 문서 초안 작성 완료 및 내부 검토 요청.', image: null },
+            { id: 'st2', time: '오늘 09:40', text: '사용적합성 엔지니어링 프로세스 양식 세팅 시작.', image: null }
+          ]
+        }
+      ],
+      notes: [
+        { id: 'n1', category: 'seonwoo', text: '선우가 요즘 공룡 그림책에 푹 빠짐. 주말에 도서관에서 관련 책 빌려주기.', time: '오늘 08:30', image: null },
+        { id: 'n2', category: 'husband', text: '다음 주 금요일 연차 사용 가능 여부 확인하기로 함.', time: '어제 21:15', image: null }
+      ]
+    };
+
+    let state = JSON.parse(localStorage.getItem('flownote_v4_data')) || JSON.parse(JSON.stringify(DEFAULT_STATE));
+    if (!state.selectedDate) state.selectedDate = getTodayISO();
+    if (!state.kpiTargetMonth) state.kpiTargetMonth = new Date().getMonth() + 1;
+    if (!state.workKpis) state.workKpis = JSON.parse(JSON.stringify(DEFAULT_STATE.workKpis));
+    if (!state.personalGoals) state.personalGoals = JSON.parse(JSON.stringify(DEFAULT_STATE.personalGoals));
+    if (state.composerMinimized === undefined) state.composerMinimized = false;
+
+    let pendingImageBase64 = null;
+    let supabaseClient = null;
+    let isRemoteUpdating = false;
+    let activeKpiModalTab = 'work';
+
+    window.addEventListener('DOMContentLoaded', () => {
+      updateDateHeader();
+      initMonthSelector();
+      renderAll();
+      initSupabaseSync();
+
+      document.addEventListener('click', (e) => {
+        const dropdown = document.getElementById('moreMenuDropdown');
+        const btn = document.getElementById('moreMenuBtn');
+        if (!dropdown.contains(e.target) && !btn.contains(e.target)) {
+          dropdown.classList.add('hidden');
+        }
+      });
+
+      document.addEventListener('paste', handlePasteImage);
+
+      document.addEventListener('keydown', (e) => {
+        if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName) || document.activeElement.isContentEditable) return;
+        const num = parseInt(e.key);
+        if (num >= 1 && num <= CATEGORIES.length) {
+          selectCategory(CATEGORIES[num - 1].id);
+        }
+      });
+    });
+
+    function initMonthSelector() {
+      const sel = document.getElementById('kpiMonthSelector');
+      sel.innerHTML = Array.from({ length: 12 }, (_, i) => {
+        const m = i + 1;
+        return `<option value="${m}" ${state.kpiTargetMonth === m ? 'selected' : ''}>${m}월</option>`;
+      }).join('');
+    }
+
+    function changeKpiTargetMonth(monthVal) {
+      state.kpiTargetMonth = parseInt(monthVal);
+      saveState();
+    }
+
+    // ==================== Supabase 클라우드 동기화 ====================
+    function getCloudConfig() {
+      const savedUrl = localStorage.getItem('flownote_sb_url');
+      const savedKey = localStorage.getItem('flownote_sb_key');
+      const url = savedUrl || (PRESET_SUPABASE_URL !== 'YOUR_SUPABASE_URL' ? PRESET_SUPABASE_URL : '');
+      const key = savedKey || (PRESET_SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY' ? PRESET_SUPABASE_ANON_KEY : '');
+      return { url, key };
+    }
+
+    async function initSupabaseSync() {
+      const { url, key } = getCloudConfig();
+      const syncDot = document.getElementById('syncDot');
+      const syncText = document.getElementById('syncText');
+      const cloudMenuStatus = document.getElementById('cloudMenuStatus');
+      const dropdownSyncInfo = document.getElementById('dropdownSyncInfo');
+
+      if (!url || !key) {
+        syncDot.className = 'w-1.5 h-1.5 rounded-full bg-amber-500';
+        syncText.innerText = '로컬 저장';
+        cloudMenuStatus.innerText = '미연결';
+        return;
+      }
+
+      try {
+        supabaseClient = window.supabase.createClient(url, key);
+        syncDot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse';
+        syncText.innerText = '클라우드 동기화';
+        cloudMenuStatus.innerText = '연결됨';
+        cloudMenuStatus.className = 'text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-semibold';
+        dropdownSyncInfo.innerText = 'PC와 모바일이 실시간으로 동기화되고 있습니다.';
+
+        const { data, error } = await supabaseClient
+          .from('flownote_state')
+          .select('data')
+          .eq('id', 'primary_user')
+          .single();
+
+        if (data && data.data) {
+          isRemoteUpdating = true;
+          state = { ...DEFAULT_STATE, ...data.data };
+          localStorage.setItem('flownote_v4_data', JSON.stringify(state));
+          renderAll();
+          isRemoteUpdating = false;
+        } else if (error && error.code === 'PGRST116') {
+          await pushStateToCloud();
+        }
+
+        supabaseClient
+          .channel('flownote_realtime')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'flownote_state', filter: 'id=eq.primary_user' }, (payload) => {
+            if (payload.new && payload.new.data) {
+              isRemoteUpdating = true;
+              state = { ...DEFAULT_STATE, ...payload.new.data };
+              localStorage.setItem('flownote_v4_data', JSON.stringify(state));
+              renderAll();
+              isRemoteUpdating = false;
+            }
+          })
+          .subscribe();
+
+      } catch (err) {
+        console.error('Supabase 연결 오류:', err);
+        syncDot.className = 'w-1.5 h-1.5 rounded-full bg-red-500';
+        syncText.innerText = '연결 오류';
+      }
+    }
+
+    async function pushStateToCloud() {
+      if (!supabaseClient || isRemoteUpdating) return;
+      try {
+        await supabaseClient
+          .from('flownote_state')
+          .upsert({ id: 'primary_user', data: state, updated_at: new Date().toISOString() });
+      } catch (e) {
+        console.error('클라우드 저장 실패:', e);
+      }
+    }
+
+    function saveState() {
+      localStorage.setItem('flownote_v4_data', JSON.stringify(state));
+      renderAll();
+      pushStateToCloud();
+    }
+
+    function updateDateHeader() {
+      const now = new Date();
+      const days = ['일', '월', '화', '수', '목', '금', '토'];
+      document.getElementById('todayDateLabel').innerText =
+        `${now.getFullYear()}년 ${now.getMonth() + 1}월 ${now.getDate()}일 (${days[now.getDay()]})`;
+    }
+
+    function renderAll() {
+      renderCategories();
+      renderVisionBar();
+      renderSchedules();
+      renderTodos();
+      renderComposerUI();
+      renderWorkThreads();
+      renderNotes();
+      renderGcalUI();
+    }
+
+    function renderCategories() {
+      const nav = document.getElementById('categoryNav');
+      nav.innerHTML = CATEGORIES.map((cat) => {
+        const active = state.activeCategory === cat.id;
+        return `
+          <button onclick="selectCategory('${cat.id}')"
+            class="px-2.5 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 shrink-0 ${
+              active
+                ? 'bg-[#1C1B18] text-white shadow-xs'
+                : 'text-[#6E6D68] hover:text-[#1C1B18] hover:bg-[#F3F2EE]'
+            }">
+            <span class="w-1.5 h-1.5 rounded-full ${active ? 'bg-white' : cat.dot}"></span>
+            <span>${cat.label}</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function selectCategory(catId) {
+      state.activeCategory = catId;
+      if (catId !== 'all') {
+        state.composerCategory = catId;
+      }
+      saveState();
+    }
+
+    function toggleVisionBar() {
+      state.visionExpanded = !state.visionExpanded;
+      saveState();
+    }
+
+    // ==================== 비전 · KPI 바 동적 렌더링 ====================
+    function renderVisionBar() {
+      const bar = document.getElementById('visionBar');
+      const chev = document.getElementById('visionChevron');
+      if (state.visionExpanded) {
+        bar.classList.remove('hidden');
+        chev.classList.add('rotate-180');
+      } else {
+        bar.classList.add('hidden');
+        chev.classList.remove('rotate-180');
+      }
+
+      const sel = document.getElementById('kpiMonthSelector');
+      if (sel) sel.value = state.kpiTargetMonth;
+
+      const badge = document.getElementById('visionModeBadge');
+      const container = document.getElementById('visionCardsContainer');
+      const m = state.kpiTargetMonth;
+      const cat = state.activeCategory;
+
+      if (cat === 'work') {
+        badge.innerText = '🏢 업무 KPI 모드';
+        badge.className = 'px-2 py-0.5 rounded-md bg-indigo-600 text-white font-semibold text-[11px]';
+
+        const activeProjects = state.workKpis.filter(p => p.targetMonth >= m);
+        const projectsHtml = activeProjects.length === 0
+          ? `<p class="text-[#9C9A92] py-2">진행 중인 연간 프로젝트가 없습니다.</p>`
+          : activeProjects.map(p => {
+              const total = p.performances.length;
+              const done = p.performances.filter(x => x.done).length;
+              const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+              return `
+                <div class="p-2.5 rounded-lg bg-white border border-[#E6E4DD] space-y-1.5">
+                  <div class="flex items-center justify-between gap-2">
+                    <span class="font-bold text-[#1C1B18] truncate">${escapeHtml(p.projectTitle)}</span>
+                    <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 shrink-0">목표: ${p.targetMonth}월 (${pct}%)</span>
+                  </div>
+                  <div class="w-full h-1.5 bg-[#F3F2EE] rounded-full overflow-hidden">
+                    <div class="h-full bg-indigo-600 transition-all" style="width: ${pct}%"></div>
+                  </div>
+                </div>
+              `;
+            }).join('');
+
+        const monthPerfs = [];
+        state.workKpis.forEach(p => {
+          p.performances.forEach(perf => {
+            if (perf.month === m) {
+              monthPerfs.push({ projectId: p.id, projectTitle: p.projectTitle, ...perf });
+            }
+          });
+        });
+
+        const perfsHtml = monthPerfs.length === 0
+          ? `<p class="text-[#9C9A92] py-2">${m}월에 배정된 세부 Performance 항목이 없습니다.</p>`
+          : monthPerfs.map(item => `
+              <label class="flex items-start gap-2 p-2 rounded-lg bg-white border border-[#E6E4DD] hover:border-indigo-300 cursor-pointer transition">
+                <input type="checkbox" ${item.done ? 'checked' : ''} onchange="toggleWorkPerf('${item.projectId}', '${item.id}')" class="mt-0.5 rounded border-stone-300 text-indigo-600 focus:ring-0" />
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-stone-100 text-[#6E6D68]">${escapeHtml(item.phase)}</span>
+                    <span class="text-[10px] text-indigo-600 font-medium truncate">${escapeHtml(item.projectTitle)}</span>
+                  </div>
+                  <div class="font-medium mt-0.5 ${item.done ? 'line-through text-[#9C9A92]' : 'text-[#1C1B18]'}">${escapeHtml(item.title)}</div>
+                </div>
+              </label>
+            `).join('');
+
+        container.innerHTML = `
+          <div class="p-3.5 rounded-xl bg-[#FAF9F6] border border-[#E6E4DD] flex flex-col justify-between">
+            <div>
+              <div class="text-[11px] font-semibold text-indigo-600 mb-1">2026 업무 연간 핵심 방향</div>
+              <div contenteditable="true" onblur="updateVision('work', this.innerText)" class="font-medium text-[#1C1B18] outline-none focus:bg-white rounded px-1 -mx-1 leading-relaxed">${escapeHtml(state.visions.work)}</div>
+            </div>
+            <div class="text-[10px] text-[#9C9A92] mt-2">클릭해 연간 업무 비전 수정</div>
+          </div>
+
+          <div class="p-3.5 rounded-xl bg-[#FAF9F6] border border-[#E6E4DD] space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-semibold text-[#6E6D68]">진행 중인 연간 프로젝트 마일스톤</span>
+              <span class="text-[10px] text-[#6E6D68]">${activeProjects.length}건</span>
+            </div>
+            <div class="space-y-2 max-h-36 overflow-y-auto pr-0.5">${projectsHtml}</div>
+          </div>
+
+          <div class="p-3.5 rounded-xl bg-indigo-50/40 border border-indigo-200/80 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-bold text-indigo-900">📌 ${m}월 필수 수행 Performance</span>
+              <span class="text-[10px] font-semibold text-indigo-700">${monthPerfs.filter(x => x.done).length}/${monthPerfs.length} 완료</span>
+            </div>
+            <div class="space-y-1.5 max-h-36 overflow-y-auto pr-0.5">${perfsHtml}</div>
+          </div>
+        `;
+        return;
+      }
+
+      if (cat !== 'all') {
+        const catObj = CATEGORIES.find(c => c.id === cat) || CATEGORIES[2];
+        badge.innerText = `🌿 [${catObj.label}] 개인 · 생활 목표 모드`;
+        badge.className = 'px-2 py-0.5 rounded-md bg-emerald-600 text-white font-semibold text-[11px]';
+
+        const visionKey = cat === 'me' ? 'me' : 'family';
+        const visionTitle = cat === 'me' ? '2026 나의 라이프 비전' : '2026 우리 가족 · 관계 비전';
+
+        const filteredGoals = state.personalGoals.filter(g => g.category === cat && g.month === m);
+        const goalsHtml = filteredGoals.length === 0
+          ? `<p class="text-[#9C9A92] py-2">${m}월에 등록된 [${catObj.label}] 목표가 없습니다.</p>`
+          : filteredGoals.map(g => `
+              <label class="flex items-center gap-2 p-2 rounded-lg bg-white border border-[#E6E4DD] hover:border-emerald-300 cursor-pointer transition">
+                <input type="checkbox" ${g.done ? 'checked' : ''} onchange="togglePersonalGoal('${g.id}')" class="rounded border-stone-300 text-emerald-600 focus:ring-0" />
+                <span class="font-medium ${g.done ? 'line-through text-[#9C9A92]' : 'text-[#1C1B18]'}">${escapeHtml(g.title)}</span>
+              </label>
+            `).join('');
+
+        container.innerHTML = `
+          <div class="p-3.5 rounded-xl bg-[#FAF9F6] border border-[#E6E4DD]">
+            <div class="text-[11px] font-semibold text-emerald-700 mb-1">${visionTitle}</div>
+            <div contenteditable="true" onblur="updateVision('${visionKey}', this.innerText)" class="font-medium text-[#1C1B18] outline-none focus:bg-white rounded px-1 -mx-1 leading-relaxed">${escapeHtml(state.visions[visionKey])}</div>
+          </div>
+
+          <div class="md:col-span-2 p-3.5 rounded-xl bg-emerald-50/40 border border-emerald-200/80 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-bold text-emerald-900">✨ ${m}월 [${catObj.label}] 생활 · 케어 목표</span>
+              <button onclick="openKpiModal('personal')" class="text-[11px] font-semibold text-emerald-700 hover:underline">+ 목표 추가/수정</button>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">${goalsHtml}</div>
+          </div>
+        `;
+        return;
+      }
+
+      badge.innerText = '전체 통합 조망 모드';
+      badge.className = 'px-2 py-0.5 rounded-md bg-[#1C1B18] text-white font-semibold text-[11px]';
+
+      const monthPerfs = [];
+      state.workKpis.forEach(p => {
+        p.performances.forEach(perf => {
+          if (perf.month === m) monthPerfs.push({ projectId: p.id, projectTitle: p.projectTitle, ...perf });
+        });
+      });
+
+      const myGoals = state.personalGoals.filter(g => g.month === m);
+
+      container.innerHTML = `
+        <div class="p-3.5 rounded-xl bg-[#FAF9F6] border border-[#E6E4DD] space-y-1.5">
+          <div class="text-[11px] font-semibold text-[#6E6D68]">2026 핵심 비전 (업무 · 라이프)</div>
+          <p class="text-[#1C1B18] font-medium leading-relaxed">🏢 ${escapeHtml(state.visions.work)}</p>
+          <p class="text-[#1C1B18] font-medium leading-relaxed pt-1 border-t border-[#E6E4DD]">🌿 ${escapeHtml(state.visions.me)}</p>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-[#FAF9F6] border border-[#E6E4DD] space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-bold text-indigo-700">🏢 ${m}월 업무 Performance</span>
+            <span class="text-[10px] text-[#6E6D68]">${monthPerfs.filter(x => x.done).length}/${monthPerfs.length} 완료</span>
+          </div>
+          <div class="space-y-1.5 max-h-32 overflow-y-auto">
+            ${monthPerfs.length === 0 ? `<p class="text-[#9C9A92]">${m}월 배정된 업무 항목 없음</p>` : monthPerfs.map(item => `
+              <label class="flex items-center gap-2 text-xs cursor-pointer">
+                <input type="checkbox" ${item.done ? 'checked' : ''} onchange="toggleWorkPerf('${item.projectId}', '${item.id}')" class="rounded border-stone-300 text-indigo-600" />
+                <span class="truncate ${item.done ? 'line-through text-[#9C9A92]' : 'text-[#1C1B18]'}">[${escapeHtml(item.phase)}] ${escapeHtml(item.title)}</span>
+              </label>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-[#FAF9F6] border border-[#E6E4DD] space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-bold text-emerald-700">🌿 ${m}월 나 · 가족 생활 목표</span>
+            <span class="text-[10px] text-[#6E6D68]">${myGoals.filter(x => x.done).length}/${myGoals.length} 완료</span>
+          </div>
+          <div class="space-y-1.5 max-h-32 overflow-y-auto">
+            ${myGoals.length === 0 ? `<p class="text-[#9C9A92]">${m}월 배정된 개인 목표 없음</p>` : myGoals.map(g => {
+              const cObj = CATEGORIES.find(c => c.id === g.category) || CATEGORIES[2];
+              return `
+                <label class="flex items-center gap-2 text-xs cursor-pointer">
+                  <input type="checkbox" ${g.done ? 'checked' : ''} onchange="togglePersonalGoal('${g.id}')" class="rounded border-stone-300 text-emerald-600" />
+                  <span class="text-[10px] font-semibold text-[#6E6D68] shrink-0">[${cObj.label}]</span>
+                  <span class="truncate ${g.done ? 'line-through text-[#9C9A92]' : 'text-[#1C1B18]'}">${escapeHtml(g.title)}</span>
+                </label>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function updateVision(key, val) {
+      state.visions[key] = val.trim();
+      saveState();
+    }
+
+    function toggleWorkPerf(projectId, perfId) {
+      const proj = state.workKpis.find(p => p.id === projectId);
+      if (proj) {
+        const perf = proj.performances.find(x => x.id === perfId);
+        if (perf) perf.done = !perf.done;
+      }
+      saveState();
+    }
+
+    function togglePersonalGoal(goalId) {
+      const goal = state.personalGoals.find(g => g.id === goalId);
+      if (goal) goal.done = !goal.done;
+      saveState();
+    }
+
+    // ==================== 하단 고정 퀵노트 콤포저 UI & 토글 ====================
+    function renderComposerUI() {
+      const bar = document.getElementById('composerTagBar');
+      const selectable = CATEGORIES.filter(c => c.id !== 'all');
+      bar.innerHTML = selectable.map(cat => {
+        const active = state.composerCategory === cat.id;
+        return `
+          <button type="button" onclick="setComposerCategory('${cat.id}')"
+            class="px-2.5 py-1 rounded-full text-[11px] font-medium transition flex items-center gap-1.5 shrink-0 ${
+              active
+                ? 'bg-[#1C1B18] text-white'
+                : 'bg-[#FAF9F6] text-[#6E6D68] hover:bg-[#F3F2EE]'
+            }">
+            <span class="w-1.5 h-1.5 rounded-full ${active ? 'bg-white' : cat.dot}"></span>
+            <span>${cat.label}</span>
+          </button>
+        `;
+      }).join('');
+
+      document.getElementById('submitBtnLabel').innerText =
+        state.composerCategory === 'work' ? '새 업무 스레드 시작' : '퀵노트 저장';
+
+      const bodyArea = document.getElementById('composerBodyArea');
+      const toggleLabel = document.getElementById('composerToggleLabel');
+      if (state.composerMinimized) {
+        bodyArea.classList.add('hidden');
+        toggleLabel.innerText = '입력창 펼치기 ▴';
+      } else {
+        bodyArea.classList.remove('hidden');
+        toggleLabel.innerText = '입력창 접기 ▾';
+      }
+    }
+
+    function toggleComposerMinimized() {
+      state.composerMinimized = !state.composerMinimized;
+      saveState();
+    }
+
+    function setComposerCategory(catId) {
+      state.composerCategory = catId;
+      saveState();
+    }
+
+    // ==================== 이미지 붙여넣기 및 퀵입력 ====================
+    function handlePasteImage(e) {
+      const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+      for (let item of items) {
+        if (item.type.indexOf('image') !== -1) {
+          const blob = item.getAsFile();
+          compressAndPreviewImage(blob);
+        }
+      }
+    }
+
+    function handleFileUpload(e) {
+      const file = e.target.files[0];
+      if (file) compressAndPreviewImage(file);
+    }
+
+    function compressAndPreviewImage(file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const maxWidth = 800;
+          const scale = Math.min(1, maxWidth / img.width);
+          canvas.width = img.width * scale;
+          canvas.height = img.height * scale;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          pendingImageBase64 = canvas.toDataURL('image/webp', 0.75);
+
+          document.getElementById('pastedImagePreview').src = pendingImageBase64;
+          document.getElementById('pastedImagePreviewWrap').classList.remove('hidden');
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function clearPastedImage() {
+      pendingImageBase64 = null;
+      document.getElementById('pastedImagePreview').src = '';
+      document.getElementById('pastedImagePreviewWrap').classList.add('hidden');
+    }
+
+    function openLightbox(src) {
+      document.getElementById('lightboxImg').src = src;
+      document.getElementById('imageLightbox').classList.remove('hidden');
+    }
+
+    function getNowTimeStr() {
+      const now = new Date();
+      return `오늘 ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    }
+
+    function submitQuickEntry() {
+      const input = document.getElementById('quickNoteInput');
+      const text = input.value.trim();
+      if (!text && !pendingImageBase64) return;
+
+      if (state.composerCategory === 'work') {
+        const lines = text.split('\n');
+        const title = lines[0] || '새 업무 트래킹';
+        const body = lines.slice(1).join('\n').trim() || text;
+        state.workThreads.
