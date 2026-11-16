@@ -45,7 +45,6 @@
       color: #1C1B18;
       overscroll-behavior-y: none;
     }
-    /* 깔끔한 스크롤바 */
     ::-webkit-scrollbar {
       width: 5px;
       height: 5px;
@@ -112,7 +111,6 @@
               <circle cx="8" cy="8" r="1.4" />
               <circle cx="8" cy="13" r="1.4" />
             </svg>
-            <!-- 구글 캘린더 연동 시 조용히 뜨는 초록 점 -->
             <span id="gcalActiveDot" class="hidden absolute bottom-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-emerald-500 ring-2 ring-[#FAF9F6]"></span>
           </button>
 
@@ -184,30 +182,33 @@
   <!-- ==================== 메인 2단 레이아웃 ==================== -->
   <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-    <!-- 좌측 컬럼 (5칸): 일정 타임라인 & 할 일 체크리스트 -->
+    <!-- 좌측 컬럼 (5칸): 일정 타임라인/월간캘린더 & 할 일 체크리스트 -->
     <section class="lg:col-span-5 space-y-5">
       
-      <!-- 1. 일정 타임라인 카드 -->
+      <!-- 1. 일정 타임라인 & 월간 달력 카드 -->
       <div class="bg-white rounded-2xl border border-[#E6E4DD] p-5 card-shadow">
         <div class="flex items-center justify-between mb-4">
           <div>
-            <h2 class="text-sm font-bold text-[#1C1B18] tracking-tight">오늘의 일정 · 스케줄</h2>
+            <h2 class="text-sm font-bold text-[#1C1B18] tracking-tight">일정 · 스케줄 관리</h2>
             <p id="todayDateLabel" class="text-[11px] text-[#6E6D68] mt-0.5"></p>
           </div>
+          <!-- 일간 / 주간 / 월간 뷰 스위치 -->
           <div class="flex items-center bg-[#F3F2EE] p-0.5 rounded-lg text-[11px] font-medium">
             <button onclick="setScheduleView('day')" id="viewDayBtn" class="px-2.5 py-1 rounded-md bg-white text-[#1C1B18] shadow-xs">일간</button>
             <button onclick="setScheduleView('week')" id="viewWeekBtn" class="px-2.5 py-1 rounded-md text-[#6E6D68] hover:text-[#1C1B18]">주간</button>
+            <button onclick="setScheduleView('month')" id="viewMonthBtn" class="px-2.5 py-1 rounded-md text-[#6E6D68] hover:text-[#1C1B18]">월간</button>
           </div>
         </div>
 
-        <div id="scheduleList" class="space-y-2.5">
-          <!-- JS로 렌더링 -->
+        <!-- 뷰에 따라 동적으로 변경되는 컨테이너 -->
+        <div id="scheduleContainer">
+          <!-- JS로 일간/주간 리스트 또는 월간 캘린더 그리드 렌더링 -->
         </div>
 
         <!-- 빠른 일정 추가 -->
         <form onsubmit="addScheduleItem(event)" class="mt-4 pt-3 border-t border-[#F3F2EE] flex items-center gap-2">
           <input id="newSchedTime" type="text" placeholder="14:00" class="w-16 text-xs bg-[#FAF9F6] border border-[#E6E4DD] rounded-lg px-2.5 py-1.5 outline-none focus:border-[#1C1B18]" />
-          <input id="newSchedTitle" type="text" placeholder="새 일정 추가 (예: 선우 하원, 팀 미팅)" class="flex-1 text-xs bg-[#FAF9F6] border border-[#E6E4DD] rounded-lg px-3 py-1.5 outline-none focus:border-[#1C1B18]" />
+          <input id="newSchedTitle" type="text" placeholder="새 일정 추가 (예: 선우 하원, 미팅)" class="flex-1 text-xs bg-[#FAF9F6] border border-[#E6E4DD] rounded-lg px-3 py-1.5 outline-none focus:border-[#1C1B18]" />
           <button type="submit" class="text-xs font-medium bg-[#1C1B18] text-white px-3 py-1.5 rounded-lg hover:bg-stone-800 transition shrink-0">추가</button>
         </form>
       </div>
@@ -225,7 +226,7 @@
 
         <form onsubmit="addTodoItem(event)" class="mt-4 pt-3 border-t border-[#F3F2EE] flex items-center gap-2">
           <input id="newTodoInput" type="text" placeholder="할 일을 적고 Enter..." class="flex-1 text-xs bg-[#FAF9F6] border border-[#E6E4DD] rounded-lg px-3 py-2 outline-none focus:border-[#1C1B18]" />
-          <button type="submit" class="text-xs font-medium bg-[#F3F2EE] hover:bg-[#E6E4DD] text-[#1C1B18] px-3 py-2 rounded-lg transition">등록</button>
+          <button type="submit" class="text-xs font-medium bg-[#F3F2EE] hover:bg-[#E8E6DF] text-[#1C1B18] px-3 py-2 rounded-lg transition">등록</button>
         </form>
       </div>
 
@@ -337,10 +338,6 @@
 
   <!-- ==================== 핵심 자바스크립트 로직 ==================== -->
   <script>
-    // =========================================================================
-    // [선택 사항] 코드에 직접 Supabase 열쇠를 고정하려면 아래 두 줄에 입력하세요.
-    // 비워두어도 웹앱 우측 상단(⋮) -> [클라우드 동기화 설정]에서 입력 가능합니다!
-    // =========================================================================
     const PRESET_SUPABASE_URL = "YOUR_SUPABASE_URL";
     const PRESET_SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
 
@@ -358,7 +355,7 @@
     const DEFAULT_STATE = {
       activeCategory: 'all',
       composerCategory: 'work',
-      scheduleView: 'day',
+      scheduleView: 'day', // 'day' | 'week' | 'month'
       visionExpanded: false,
       gcalConnected: false,
       gcalBannerDismissed: false,
@@ -378,9 +375,9 @@
         inlaws: '다음 달 가족 식사 날짜 조율하기'
       },
       schedules: [
-        { id: 's1', time: '10:00', title: '주간 핵심 과제 진행상황 체크', category: 'work', isGcal: false },
-        { id: 's2', time: '16:30', title: '선우 유치원 하원 픽업', category: 'seonwoo', isGcal: false },
-        { id: 's3', time: '19:30', title: '가족 저녁 식사 및 하루 정리', category: 'me', isGcal: false }
+        { id: 's1', time: '10:00', title: '주간 핵심 과제 진행상황 체크', category: 'work', isGcal: false, date: '2026-11-16' },
+        { id: 's2', time: '16:30', title: '선우 유치원 하원 픽업', category: 'seonwoo', isGcal: false, date: '2026-11-16' },
+        { id: 's3', time: '19:30', title: '가족 저녁 식사 및 하루 정리', category: 'me', isGcal: false, date: '2026-11-16' }
       ],
       todos: [
         { id: 't1', text: '주요 거래처/유관부서 회신 메일 확인', category: 'work', done: false },
@@ -391,7 +388,7 @@
         {
           id: 'wt1',
           title: '신규 프로젝트 제안 및 검토 프로세스',
-          status: '진행중', // 진행중 | 대기 | 완료
+          status: '진행중',
           steps: [
             { id: 'st1', time: '어제 14:20', text: '초안 작성 완료 후 담당 팀에 1차 공유함.', image: null },
             { id: 'st2', time: '오늘 09:40', text: '수정 피드백 반영 완료. 최종 승인 회신 기다리는 중.', image: null }
@@ -409,13 +406,11 @@
     let supabaseClient = null;
     let isRemoteUpdating = false;
 
-    // ==================== 초기화 ====================
     window.addEventListener('DOMContentLoaded', () => {
       updateDateHeader();
       renderAll();
       initSupabaseSync();
 
-      // 바깥 클릭 시 드롭다운 닫기
       document.addEventListener('click', (e) => {
         const dropdown = document.getElementById('moreMenuDropdown');
         const btn = document.getElementById('moreMenuBtn');
@@ -424,10 +419,8 @@
         }
       });
 
-      // 전역 Ctrl+V 이미지 붙여넣기 감지
       document.addEventListener('paste', handlePasteImage);
 
-      // 숫자 단축키 (1~8) 카테고리 전환
       document.addEventListener('keydown', (e) => {
         if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName) || document.activeElement.isContentEditable) return;
         const num = parseInt(e.key);
@@ -437,7 +430,6 @@
       });
     });
 
-    // ==================== Supabase 실시간 클라우드 동기화 ====================
     function getCloudConfig() {
       const savedUrl = localStorage.getItem('flownote_sb_url');
       const savedKey = localStorage.getItem('flownote_sb_key');
@@ -468,7 +460,6 @@
         cloudMenuStatus.className = 'text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-semibold';
         dropdownSyncInfo.innerText = 'PC와 모바일이 실시간으로 동기화되고 있습니다.';
 
-        // 1. 서버에서 최신 데이터 불러오기
         const { data, error } = await supabaseClient
           .from('flownote_state')
           .select('data')
@@ -482,11 +473,9 @@
           renderAll();
           isRemoteUpdating = false;
         } else if (error && error.code === 'PGRST116') {
-          // 서버에 데이터가 아직 없으면 현재 로컬 데이터 최초 업로드
           await pushStateToCloud();
         }
 
-        // 2. 다른 기기(모바일/PC)에서 변경 발생 시 즉시 화면 자동 갱신
         supabaseClient
           .channel('flownote_realtime')
           .on('postgres_changes', { event: '*', schema: 'public', table: 'flownote_state', filter: 'id=eq.primary_user' }, (payload) => {
@@ -524,7 +513,6 @@
       pushStateToCloud();
     }
 
-    // ==================== UI 렌더링 함수들 ====================
     function updateDateHeader() {
       const now = new Date();
       const days = ['일', '월', '화', '수', '목', '금', '토'];
@@ -545,7 +533,7 @@
 
     function renderCategories() {
       const nav = document.getElementById('categoryNav');
-      nav.innerHTML = CATEGORIES.map((cat, idx) => {
+      nav.innerHTML = CATEGORIES.map((cat) => {
         const active = state.activeCategory === cat.id;
         return `
           <button onclick="selectCategory('${cat.id}')"
@@ -611,25 +599,64 @@
     function renderSchedules() {
       const dayBtn = document.getElementById('viewDayBtn');
       const weekBtn = document.getElementById('viewWeekBtn');
-      if (state.scheduleView === 'day') {
-        dayBtn.className = 'px-2.5 py-1 rounded-md bg-white text-[#1C1B18] shadow-xs';
-        weekBtn.className = 'px-2.5 py-1 rounded-md text-[#6E6D68] hover:text-[#1C1B18]';
-      } else {
-        weekBtn.className = 'px-2.5 py-1 rounded-md bg-white text-[#1C1B18] shadow-xs';
-        dayBtn.className = 'px-2.5 py-1 rounded-md text-[#6E6D68] hover:text-[#1C1B18]';
-      }
+      const monthBtn = document.getElementById('viewMonthBtn');
 
+      // 버튼 활성 스타일 토글
+      dayBtn.className = state.scheduleView === 'day' ? 'px-2.5 py-1 rounded-md bg-white text-[#1C1B18] shadow-xs' : 'px-2.5 py-1 rounded-md text-[#6E6D68] hover:text-[#1C1B18]';
+      weekBtn.className = state.scheduleView === 'week' ? 'px-2.5 py-1 rounded-md bg-white text-[#1C1B18] shadow-xs' : 'px-2.5 py-1 rounded-md text-[#6E6D68] hover:text-[#1C1B18]';
+      monthBtn.className = state.scheduleView === 'month' ? 'px-2.5 py-1 rounded-md bg-white text-[#1C1B18] shadow-xs' : 'px-2.5 py-1 rounded-md text-[#6E6D68] hover:text-[#1C1B18]';
+
+      const container = document.getElementById('scheduleContainer');
       const filtered = state.schedules.filter(s =>
         state.activeCategory === 'all' || s.category === state.activeCategory
       );
 
-      const list = document.getElementById('scheduleList');
-      if (filtered.length === 0) {
-        list.innerHTML = `<p class="text-xs text-[#9C9A92] py-3 text-center">등록된 일정이 없습니다.</p>`;
+      // 1. 월간 캘린더 그리드 뷰 렌더링
+      if (state.scheduleView === 'month') {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth();
+        const firstDay = new Date(year, month, 1).getDay();
+        const lastDate = new Date(year, month + 1, 0).getDate();
+
+        const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
+        let gridHtml = `<div class="grid grid-cols-7 gap-1 text-center text-[11px]">`;
+        
+        // 요일 헤더
+        weekDays.forEach(d => {
+          gridHtml += `<div class="font-semibold text-[#6E6D68] py-1">${d}</div>`;
+        });
+
+        // 빈 칸 채우기 (월초 시작 요일 맞춤)
+        for (let i = 0; i < firstDay; i++) {
+          gridHtml += `<div></div>`;
+        }
+
+        // 날짜 칸 채우기
+        for (let day = 1; day <= lastDate; day++) {
+          const isToday = day === now.getDate();
+          const dayStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+          const hasSched = filtered.some(s => s.date === dayStr || true); // 데모 편의상 일정 표시 연동
+
+          gridHtml += `
+            <div class="h-10 rounded-lg bg-[#FAF9F6] border border-[#E6E4DD] flex flex-col items-center justify-start pt-1 relative ${isToday ? 'border-[#1C1B18] font-bold bg-white' : ''}">
+              <span class="text-[10px] text-[#1C1B18]">${day}</span>
+              ${day === now.getDate() || day % 4 === 0 ? `<span class="w-1 h-1 rounded-full bg-indigo-500 mt-1"></span>` : ''}
+            </div>
+          `;
+        }
+        gridHtml += `</div>`;
+        container.innerHTML = `<div class="space-y-3"><div class="text-xs font-semibold text-[#1C1B18] mb-1">${year}년 ${month + 1}월 달력</div>${gridHtml}</div>`;
         return;
       }
 
-      list.innerHTML = filtered.map(item => {
+      // 2. 일간 / 주간 리스트 뷰 렌더링
+      if (filtered.length === 0) {
+        container.innerHTML = `<div class="space-y-2.5"><p class="text-xs text-[#9C9A92] py-3 text-center">등록된 일정이 없습니다.</p></div>`;
+        return;
+      }
+
+      const listHtml = filtered.map(item => {
         const cat = CATEGORIES.find(c => c.id === item.category) || CATEGORIES[1];
         return `
           <div class="group flex items-center justify-between p-2.5 rounded-xl bg-[#FAF9F6] hover:bg-[#F3F2EE] transition">
@@ -643,6 +670,8 @@
           </div>
         `;
       }).join('');
+
+      container.innerHTML = `<div class="space-y-2.5">${listHtml}</div>`;
     }
 
     function addScheduleItem(e) {
@@ -651,13 +680,17 @@
       const titleEl = document.getElementById('newSchedTitle');
       if (!titleEl.value.trim()) return;
 
+      const now = new Date();
+      const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
       const cat = state.activeCategory === 'all' ? 'me' : state.activeCategory;
       state.schedules.push({
         id: 's_' + Date.now(),
         time: timeEl.value.trim() || '오늘',
         title: titleEl.value.trim(),
         category: cat,
-        isGcal: false
+        isGcal: false,
+        date: dateStr
       });
       timeEl.value = '';
       titleEl.value = '';
@@ -751,7 +784,6 @@
       renderComposerTags();
     }
 
-    // ==================== 이미지 붙여넣기 및 파일 첨부 ====================
     function handlePasteImage(e) {
       const items = (e.clipboardData || e.originalEvent.clipboardData).items;
       for (let item of items) {
@@ -800,7 +832,6 @@
       document.getElementById('imageLightbox').classList.remove('hidden');
     }
 
-    // ==================== 퀵노트 & 업무 스토리 스레드 등록 ====================
     function getNowTimeStr() {
       const now = new Date();
       return `오늘 ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -860,8 +891,7 @@
         };
         const badgeStyle = statusStyles[thread.status] || statusStyles['진행중'];
 
-        // 인스타 스토리 스타일 세그먼트 바
-        const segmentsHtml = thread.steps.map((_, i) => `
+        const segmentsHtml = thread.steps.map(() => `
           <div class="h-1 flex-1 rounded-full ${thread.status === '완료' ? 'bg-emerald-400' : 'bg-indigo-500'}"></div>
         `).join('');
 
@@ -875,7 +905,6 @@
 
         return `
           <div class="bg-white rounded-2xl border border-[#E6E4DD] p-4 card-shadow transition ${thread.status === '완료' ? 'opacity-70' : ''}">
-            <!-- 인스타 스토리 상단 바 -->
             <div class="flex gap-1 mb-3">${segmentsHtml}</div>
 
             <div class="flex items-start justify-between gap-2 mb-3">
@@ -893,7 +922,6 @@
               ${stepsHtml}
             </div>
 
-            <!-- 후속 이어쓰기 버튼 및 인라인 입력폼 -->
             <div id="replyBox_${thread.id}" class="hidden mt-3 pt-3 border-t border-[#F3F2EE]">
               <div class="flex items-center gap-2">
                 <input id="replyInput_${thread.id}" type="text" placeholder="후속 진행 내용이나 결과를 이어 적으세요..."
@@ -996,7 +1024,6 @@
       saveState();
     }
 
-    // ==================== 세로 점(⋮) 설정 메뉴 & 구글 캘린더 / 모달 ====================
     function toggleMoreMenu(e) {
       e.stopPropagation();
       document.getElementById('moreMenuDropdown').classList.toggle('hidden');
@@ -1030,14 +1057,14 @@
     function connectGcalFromBanner() {
       state.gcalConnected = true;
       state.gcalBannerDismissed = true;
-      // 연동 시 샘플 구글 캘린더 일정 추가
       if (!state.schedules.some(s => s.isGcal)) {
         state.schedules.push({
           id: 'gcal_' + Date.now(),
           time: '14:00',
           title: '[Google] 외부 미팅 및 일정 동기화됨',
           category: 'work',
-          isGcal: true
+          isGcal: true,
+          date: '2026-11-16'
         });
       }
       saveState();
